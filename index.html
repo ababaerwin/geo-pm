@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DOLE Regional Office VII — Cebu and Bohol programs monitoring with geotagging (HTML prototype).">
+  <title>DOLE RO7 | Centralized Program Monitoring</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <style>
+    :root { --navy:#092440; --navy2:#0e3558; --blue:#1060a2; --sky:#eff6fc; --line:#e5edf4; --muted:#687d91; --bg:#f5f8fc; --ink:#193047; }
+    * { box-sizing:border-box; }
+    body { background:var(--bg); color:var(--ink); font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px; }
+    .app-sidebar { background:linear-gradient(180deg,#092441,#0b3152); position:fixed; left:0; top:0; bottom:0; width:250px; color:#fff; z-index:1000; display:flex; flex-direction:column; box-shadow:5px 0 25px rgba(0,34,71,.07); }
+    .brand { padding:27px 21px 23px; border-bottom:1px solid rgba(255,255,255,.1); display:flex; align-items:center; gap:11px; }
+    .brand-badge { width:44px; height:44px; background:#fff; color:var(--navy); display:grid; place-items:center; border-radius:13px; font-size:14px; line-height:1; text-align:center; font-weight:900; letter-spacing:-.7px; flex-shrink:0; border-bottom:4px solid #df3242; }
+    .brand-title { font-size:15px; font-weight:800; line-height:1.25; }
+    .brand-subtitle { color:#bfd6ea; font-size:11px; padding-top:3px; }
+    .nav-caption { color:#89afcf; font-size:10px; letter-spacing:1.6px; font-weight:700; padding:27px 27px 10px; }
+    .side-link { border:0; color:#c6d9ea; background:transparent; margin:3px 13px; padding:13px 16px; text-align:left; border-radius:9px; display:flex; align-items:center; gap:12px; font-weight:550; width:calc(100% - 26px); transition:.15s; }
+    .side-link i { font-size:19px; line-height:1; width:21px; }
+    .side-link:hover,.side-link.active { background:rgba(255,255,255,.13); color:white; }
+    .side-link.active { box-shadow:inset 3px 0 0 #45baff; }
+    .side-bottom { margin-top:auto; padding:21px 20px; border-top:1px solid rgba(255,255,255,.1); }
+    .scope-pill { color:#cfe8fa; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:11px 12px; font-size:11px; }
+    .app-main { margin-left:250px; min-height:100vh; }
+    .topbar { height:76px; padding:0 34px; background:#fff; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .topbar-title { font-size:13px; font-weight:750; margin-bottom:2px; }
+    .topbar-note { color:#8698aa; font-size:12px; }
+    .demo-badge { font-size:11px; background:#fff8e4; color:#876015; border:1px solid #f1dfa4; border-radius:50px; padding:7px 12px; font-weight:700; }
+    .main-content { padding:31px 34px 48px; max-width:1690px; margin:auto; }
+    .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:25px; flex-wrap:wrap; }
+    .eyebrow { text-transform:uppercase; letter-spacing:1.5px; color:#3c86b8; font-size:10px; font-weight:900; margin-bottom:8px; }
+    h1.page-title { font-size:26px; letter-spacing:-.7px; font-weight:800; margin:0 0 8px; color:#102d48; }
+    .page-desc { color:#7790a6; margin:0; }
+    .primary-btn { background:var(--blue); border:1px solid var(--blue); color:#fff; border-radius:10px; padding:10px 18px; font-weight:700; box-shadow:0 7px 15px rgba(16,96,162,.17); }
+    .primary-btn:hover { background:#07477d; color:white; border-color:#07477d; }
+    .soft-btn { background:white; border:1px solid #dce6ee; border-radius:10px; color:#45647d; padding:10px 16px; font-weight:650; }
+    .soft-btn:hover { background:#f1f7fc; }
+    .card-ui { background:#fff; border:1px solid var(--line); border-radius:15px; box-shadow:0 5px 21px rgba(13,52,86,.035); }
+    .metric { padding:22px 22px 20px; min-height:136px; position:relative; overflow:hidden; }
+    .metric-label { color:#71899f; font-size:12px; font-weight:600; }
+    .metric-value { font-size:31px; font-weight:800; letter-spacing:-1px; color:#193950; line-height:1.2; margin-top:11px; }
+    .metric-foot { margin-top:6px; font-size:11px; color:#94a6b5; }
+    .metric-icon { position:absolute; right:19px; top:20px; width:38px; height:38px; border-radius:11px; display:grid; place-items:center; font-size:19px; }
+    .metric-blue { background:#e9f4ff;color:#2774bc; } .metric-green { background:#e5f9f2;color:#219b73; } .metric-orange { background:#fff3e4;color:#e5a039; } .metric-purple { background:#f1ecff;color:#8763ca; }
+    .section-head { display:flex; justify-content:space-between; align-items:center; padding:19px 22px; border-bottom:1px solid var(--line); gap:10px; flex-wrap:wrap; }
+    .section-head h2 { margin:0; font-size:15px; font-weight:800; color:#234059; }
+    .small-muted { color:#8c9fb0; font-size:12px; }
+    .map-tools { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+    select.form-select, input.form-control, textarea.form-control { border-color:#dce6ef; border-radius:9px; min-height:41px; font-size:13px; color:#25415a; }
+    select.form-select:focus, input.form-control:focus, textarea.form-control:focus { border-color:#78b3e2; box-shadow:0 0 0 .18rem rgba(29,113,182,.09); }
+    .filter-select { min-width:164px; max-width:215px; }
+    #dashboardMap { height:450px; width:100%; border-radius:0 0 15px 15px; z-index:0; background:#e7f0f4; }
+    .map-key { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .keyitem { color:#6c8194; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:6px; }
+    .keydot { height:9px; width:9px; border-radius:50%; }
+    .program-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 0; border-bottom:1px solid #eff3f7; }
+    .program-row:last-child { border:0; }
+    .program-name { font-size:12px; font-weight:700; color:#476277; }
+    .bar-track { height:6px; background:#edf3f8; border-radius:50px; overflow:hidden; margin-top:8px; }
+    .bar-fill { height:100%; border-radius:50px; }
+    .padded-panel { padding:10px 20px 16px; }
+    .table { --bs-table-color:#37536b; margin-bottom:0; font-size:12px; }
+    .table thead th { color:#8b9dab; font-size:10px; letter-spacing:.6px; background:#f8fafc; font-weight:800; border-top:0; white-space:nowrap; padding:14px 16px; text-transform:uppercase; }
+    .table tbody td { padding:15px 16px; vertical-align:middle; border-color:#edf2f6; }
+    .record-title { font-weight:750; color:#25445c; font-size:12px; }
+    .record-place { color:#92a3b1; font-size:11px; margin-top:3px; }
+    .tag { border-radius:30px; padding:5px 9px; font-size:10px; font-weight:750; display:inline-block; white-space:nowrap; }
+    .st-Planned { background:#fff2d8; color:#a87517; } .st-Ongoing { background:#e4f1ff; color:#256bae; } .st-Completed { background:#dcf5ea; color:#24875b; }
+    .program-tag { border:1px solid #e6eef5; background:#f9fbfd; color:#38536a; }
+    .dot-marker { height:19px; width:19px; border-radius:50%; border:3px solid white; box-shadow:0 2px 10px #17354d66; }
+    .leaflet-popup-content-wrapper { border-radius:12px; } .leaflet-popup-content { margin:14px 16px; min-width:222px; font-family:inherit; }
+    .popup-title { font-weight:800; font-size:14px; line-height:1.4; margin:7px 0; color:#183750; }
+    .popup-line { display:flex; justify-content:space-between; gap:14px; font-size:11px; margin:6px 0; color:#8294a4; } .popup-line strong { color:#35526c; text-align:right; }
+    .popup-program { display:inline-flex; align-items:center; gap:7px; font-size:10px; font-weight:850; }
+    .form-label { font-size:12px; color:#455e74; font-weight:750; margin-bottom:7px; }
+    .required:after { content:" *"; color:#dd5c5c; }
+    .helper { font-size:11px; color:#8ba0b1; margin-top:6px; }
+    .form-section-heading { font-size:14px; font-weight:800; color:#25445e; margin:5px 0 17px; }
+    .entry-map-wrap { position:sticky; top:18px; }
+    #entryMap { height:375px; width:100%; border-radius:12px; background:#e7f0f4; z-index:0; }
+    #searchResults { max-height:208px; overflow:auto; }
+    .search-result { border:1px solid #e9eff5; background:#fff; padding:11px; border-radius:9px; text-align:left; width:100%; margin-top:6px; color:#325775; font-size:12px; }
+    .search-result:hover { border-color:#77b7df; background:#f4faff; }
+    .coords-box { background:#f0f7fc; border:1px dashed #bdd6e8; border-radius:9px; padding:12px 14px; margin-top:12px; color:#55778f; font-size:12px; }
+    .info-strip { border-radius:10px; background:#edf6fe; color:#446e8f; padding:12px 16px; border:1px solid #dbebf7; font-size:12px; }
+    .empty { color:#8a9ead; padding:40px 18px; text-align:center; }
+    .empty i { font-size:32px; color:#c2d0db; display:block; margin-bottom:11px; }
+    .view { display:none; } .view.active { display:block; }
+    .mobile-nav { display:none; }
+    .focustext { color:var(--blue); font-weight:750; }
+    .toast-container { z-index:2200; }
+    .legend-chip { display:inline-flex; align-items:center; gap:7px; background:#f8fbfd; border:1px solid #e7edf4; padding:7px 10px; border-radius:8px; font-size:11px; margin:3px; color:#647f96; }
+    .badge-soft { background:#eaf2f9; color:#3977a5; font-size:11px; border-radius:30px; padding:6px 10px; }
+    @media(max-width:1199px) { .app-sidebar{width:210px;} .app-main{margin-left:210px;} .main-content{padding:26px;} .topbar{padding:0 26px;} }
+    @media(max-width:860px) { .app-sidebar{display:none;} .app-main{margin:0;} .topbar{height:65px;padding:0 18px;} .main-content{padding:23px 16px 90px;} .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--line);z-index:1200;justify-content:space-around;padding:7px 0 11px;box-shadow:0 -5px 15px #0c2f4f14;} .mobile-nav button{border:0;background:none;color:#8293a4;font-size:10px;display:grid;place-items:center;gap:3px;min-width:65px;} .mobile-nav i{font-size:19px;} .mobile-nav button.active{color:var(--blue);} h1.page-title{font-size:23px;} #dashboardMap{height:360px;} .filter-select{min-width:130px;} .entry-map-wrap{position:static;} }
+    @media(max-width:560px) { .topbar-note{display:none;} .demo-badge{font-size:10px;} .metric{min-height:120px;padding:17px;} .metric-icon{width:31px;height:31px;font-size:15px;} .metric-value{font-size:26px;} .map-tools{width:100%;} .filter-select{flex:1;min-width:110px;max-width:none;} .map-tools select {font-size:11px;}.page-heading{gap:12px;} }
+  </style>
+</head>
+<body>
+<aside class="app-sidebar" aria-label="Main navigation">
+  <div class="brand"><div class="brand-badge">DOLE<br>VII</div><div><div class="brand-title">DOLE Regional Office VII</div><div class="brand-subtitle">Monitoring &amp; Geotagging</div></div></div>
+  <div class="nav-caption">WORKSPACE</div>
+  <nav>
+    <button class="side-link active" data-view="dashboard"><i class="bi bi-grid-1x2"></i> Overview Dashboard</button>
+    <button class="side-link" data-view="records"><i class="bi bi-list-check"></i> Monitoring Activities</button>
+    <button class="side-link" data-view="entry"><i class="bi bi-geo-alt"></i> Add New Activity</button>
+    <button class="side-link" data-view="about"><i class="bi bi-info-circle"></i> About this Prototype</button>
+  </nav>
+  <div class="side-bottom"><div class="scope-pill"><div class="fw-bold mb-1"><i class="bi bi-shield-check me-1"></i> Authorized Coverage</div>Cebu Provincial · Tri-City · Bohol<br><span style="color:#a4c2d9">Cebu &amp; Bohol only</span></div><div class="small mt-3" style="color:#86a6bf">Client-side demo • No PHP required</div></div>
+</aside>
+<main class="app-main">
+  <header class="topbar">
+    <div><div class="topbar-title">Centralized Monitoring Tool <span style="color:#a3b2bf;font-weight:500">/ DOLE-RO7</span></div><div class="topbar-note">Program implementation and geospatial visibility</div></div>
+    <div class="d-flex align-items-center gap-3"><span class="demo-badge"><i class="bi bi-circle-fill me-1" style="font-size:7px"></i> HTML PROTOTYPE</span><div class="d-none d-md-flex align-items-center gap-2" style="border-left:1px solid #e2eaf0;padding-left:18px"><span style="width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#ebf3fa;color:#3674a0"><i class="bi bi-person"></i></span><span class="fw-bold" style="font-size:12px">Demo User</span></div></div>
+  </header>
+  <div class="main-content">
+    <section id="view-dashboard" class="view active">
+      <div class="page-heading"><div><div class="eyebrow">Regional Monitoring Overview</div><h1 class="page-title">Program Monitoring Dashboard</h1><p class="page-desc">Track implementation, beneficiaries, and locations across Cebu and Bohol.</p></div><button class="primary-btn" data-go="entry"><i class="bi bi-plus-lg me-2"></i>Add Activity</button></div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3"><div class="card-ui metric"><div class="metric-label">Total Activities</div><div id="metricTotal" class="metric-value">0</div><div class="metric-foot">Current filters</div><div class="metric-icon metric-blue"><i class="bi bi-journal-check"></i></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card-ui metric"><div class="metric-label">Total Beneficiaries</div><div id="metricBeneficiaries" class="metric-value">0</div><div class="metric-foot">Recorded beneficiaries</div><div class="metric-icon metric-green"><i class="bi bi-people"></i></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card-ui metric"><div class="metric-label">Completed</div><div id="metricCompleted" class="metric-value">0</div><div class="metric-foot">Implementation status</div><div class="metric-icon metric-purple"><i class="bi bi-check-circle"></i></div></div></div>
+        <div class="col-6 col-xl-3"><div class="card-ui metric"><div class="metric-label">Ongoing</div><div id="metricOngoing" class="metric-value">0</div><div class="metric-foot">Currently in progress</div><div class="metric-icon metric-orange"><i class="bi bi-activity"></i></div></div></div>
+      </div>
+      <div class="row g-3 mb-4">
+        <div class="col-xl-9"><div class="card-ui h-100"><div class="section-head"><div><h2><i class="bi bi-pin-map me-2 text-primary"></i>Geotagged Activity Map</h2><div class="small-muted mt-1">Select any marker to view its activity details</div></div><div class="map-tools"><select class="form-select form-select-sm filter-select" id="filterOffice" aria-label="Filter by field office"><option value="">All Field Offices</option></select><select class="form-select form-select-sm filter-select" id="filterProgram" aria-label="Filter by program"><option value="">All Programs</option></select><button class="soft-btn" id="resetFilters" title="Clear map filters" aria-label="Clear map filters"><i class="bi bi-arrow-counterclockwise"></i></button></div></div><div id="dashboardMap" role="application" aria-label="Leaflet map of Cebu and Bohol activities"></div></div></div>
+        <div class="col-xl-3"><div class="card-ui h-100"><div class="section-head"><div><h2>Programs &amp; Services</h2><div class="small-muted mt-1">Distribution of activities</div></div></div><div class="padded-panel" id="programBreakdown"></div><div class="mx-3 mb-3 p-3" style="background:#f4f9fd;border-radius:10px"><div class="fw-bold mb-1" style="font-size:12px;color:#375f7e"><i class="bi bi-geo me-1"></i> Geographic Scope</div><span class="small-muted">Cebu and Bohol only, with separate Tri-City jurisdiction.</span></div></div></div>
+      </div>
+      <div class="card-ui"><div class="section-head"><div><h2>Recent Monitoring Activities</h2><div class="small-muted mt-1">Showing the latest activities matching your filters</div></div><button class="soft-btn" data-go="records"><i class="bi bi-arrow-right me-2"></i>View All Records</button></div><div class="table-responsive"><table class="table"><thead><tr><th>Activity / Location</th><th>Field Office</th><th>Program</th><th>Date</th><th>Status</th><th class="text-end">Beneficiaries</th></tr></thead><tbody id="recentTable"></tbody></table></div></div>
+    </section>
+    <section id="view-records" class="view">
+      <div class="page-heading"><div><div class="eyebrow">Activity Registry</div><h1 class="page-title">Monitoring Activities</h1><p class="page-desc">Manage saved activities, review coverage, and export records.</p></div><div class="d-flex gap-2 flex-wrap"><button class="soft-btn" id="exportCsv"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Export CSV</button><button class="soft-btn" id="exportJson"><i class="bi bi-download me-2"></i>Backup JSON</button><button class="primary-btn" data-go="entry"><i class="bi bi-plus-lg me-2"></i>Add Activity</button></div></div>
+      <div class="card-ui mb-3 p-3"><div class="row g-2 align-items-center"><div class="col-lg-5"><label class="visually-hidden" for="recordSearch">Search activities</label><input class="form-control" id="recordSearch" placeholder="Search title, barangay, city, office or program..."></div><div class="col-sm-4 col-lg-3"><select class="form-select" id="recordOffice"><option value="">All Field Offices</option></select></div><div class="col-sm-4 col-lg-2"><select class="form-select" id="recordStatus"><option value="">All Statuses</option><option>Planned</option><option>Ongoing</option><option>Completed</option></select></div><div class="col-sm-4 col-lg-2"><button id="clearRecordFilters" class="soft-btn w-100">Clear Filters</button></div></div></div>
+      <div class="card-ui"><div class="section-head"><h2>Activity Records <span class="badge-soft ms-2" id="recordsCount">0</span></h2><span class="small-muted">Saved in this browser only</span></div><div class="table-responsive"><table class="table"><thead><tr><th>Activity / Location</th><th>Field Office</th><th>Program</th><th>Date</th><th>Status</th><th class="text-end">Beneficiaries</th><th class="text-end">Actions</th></tr></thead><tbody id="recordsTable"></tbody></table></div></div>
+      <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center mt-3"><div class="small-muted">Demo records can be reset using the option in About.</div><label class="soft-btn" for="importJson" style="cursor:pointer"><i class="bi bi-upload me-2"></i>Restore JSON Backup</label><input type="file" id="importJson" accept="application/json,.json" hidden></div>
+    </section>
+    <section id="view-entry" class="view">
+      <div class="page-heading"><div><div class="eyebrow">Geotagged Monitoring</div><h1 class="page-title" id="entryTitle">Register New Activity</h1><p class="page-desc">Add a program activity and verify its location within Cebu or Bohol.</p></div><button class="soft-btn" data-go="records"><i class="bi bi-arrow-left me-2"></i>Back to Records</button></div>
+      <div class="row g-3"><div class="col-xl-6"><div class="card-ui p-4"><form id="activityForm" novalidate>
+        <div class="form-section-heading">01 <span class="ms-2">Activity Information</span></div>
+        <div class="mb-3"><label class="form-label required" for="activityTitle">Activity Title</label><input class="form-control" id="activityTitle" maxlength="180" required placeholder="e.g., TUPAD Community Employment Assistance"></div>
+        <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label required" for="activityOffice">Field Office</label><select class="form-select" id="activityOffice" required><option value="">Select field office</option></select></div><div class="col-md-6"><label class="form-label required" for="activityProgram">DOLE Program / Service</label><select class="form-select" id="activityProgram" required><option value="">Select program</option></select></div></div>
+        <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label required" for="activityDate">Date Conducted / Scheduled</label><input type="date" class="form-control" id="activityDate" required></div><div class="col-md-6"><label class="form-label required" for="activityStatus">Implementation Status</label><select class="form-select" id="activityStatus" required><option value="Planned">Planned</option><option value="Ongoing">Ongoing</option><option value="Completed">Completed</option></select></div></div>
+        <div class="mb-3"><label class="form-label required" for="activityBeneficiaries">Number of Beneficiaries</label><input type="number" min="0" max="9999999" step="1" class="form-control" id="activityBeneficiaries" value="0" required></div>
+        <hr class="my-4" style="border-color:#e8eef3"><div class="form-section-heading">02 <span class="ms-2">Location Information</span></div>
+        <div class="info-strip mb-3"><i class="bi bi-info-circle me-1"></i> Search for a place, select a verified result, or click the location map. Only Cebu/Bohol places matching the chosen field office are accepted.</div>
+        <div class="mb-3"><label class="form-label required" for="locationSearch">Search Barangay / Municipality</label><div class="input-group"><input class="form-control" id="locationSearch" placeholder="e.g., Guadalupe, Cebu City, Cebu"><button class="btn btn-outline-primary" type="button" id="searchLocationBtn"><i class="bi bi-search me-1"></i>Search</button></div><div class="helper">Press Search (not type-ahead) to find an OpenStreetMap location.</div><div id="searchResults" role="status" aria-live="polite"></div></div>
+        <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label" for="activityBarangay">Barangay</label><input class="form-control" id="activityBarangay" placeholder="e.g., Guadalupe"></div><div class="col-md-6"><label class="form-label required" for="activityCity">Municipality / City</label><input class="form-control" id="activityCity" readonly required placeholder="Set by verified location"></div></div>
+        <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label required" for="activityProvince">Province</label><input class="form-control" id="activityProvince" readonly required placeholder="Select field office"></div><div class="col-md-6"><label class="form-label">Coordinates</label><input class="form-control" id="activityCoordinates" readonly placeholder="Not yet selected"></div></div>
+        <div class="mb-4"><label class="form-label" for="activityRemarks">Remarks / Notes</label><textarea class="form-control" id="activityRemarks" rows="3" maxlength="2000" placeholder="Additional information about the activity"></textarea></div>
+        <div class="d-flex justify-content-end gap-2 flex-wrap"><button type="button" class="soft-btn" id="clearEntry">Clear Form</button><button type="submit" class="primary-btn"><i class="bi bi-check2-circle me-2"></i><span id="saveBtnText">Save Monitoring Activity</span></button></div>
+      </form></div></div>
+      <div class="col-xl-6"><div class="entry-map-wrap"><div class="card-ui p-3 mb-3"><div class="d-flex justify-content-between align-items-center mb-3"><div class="fw-bold" style="color:#274660"><i class="bi bi-geo-alt me-2 text-primary"></i>Geotagging / Map Pin</div><span id="locationFlag" class="tag st-Planned">Awaiting location</span></div><div id="entryMap" aria-label="Click map to verify activity location"></div><div class="coords-box" id="locationSummary"><i class="bi bi-cursor me-1"></i> Search for a barangay or click the map to verify a location. The pin and coordinates will update automatically.</div></div><div class="card-ui p-3"><div class="fw-bold mb-2" style="color:#274660"><i class="bi bi-shield-check me-2 text-primary"></i>Jurisdiction Rules</div><div class="small-muted" style="line-height:1.9"><strong>CPFO:</strong> Cebu province, excluding Cebu, Mandaue and Lapu-Lapu cities.<br><strong>TCFO:</strong> Cebu City, Mandaue City and Lapu-Lapu City only.<br><strong>BFO:</strong> Bohol province only.<br><strong>Outside scope:</strong> Negros Oriental and Siquijor are not accepted.</div></div></div></div></div>
+    </section>
+    <section id="view-about" class="view">
+      <div class="page-heading"><div><div class="eyebrow">Prototype Information</div><h1 class="page-title">About the Monitoring Tool</h1><p class="page-desc">This HTML-only preview demonstrates the intended DOLE-RO7 workflows.</p></div></div>
+      <div class="row g-3"><div class="col-lg-7"><div class="card-ui p-4"><h2 class="h6 fw-bold">Included features</h2><p class="text-secondary">Live Leaflet/OpenStreetMap maps, colored program markers, dashboard filters, activity registration, on-demand Nominatim location search, province and field office validation, browser-based saving, editing and deletion, CSV export, and JSON backup/restore.</p><div class="info-strip"><i class="bi bi-exclamation-circle me-1"></i> This version saves data using <strong>localStorage</strong> on this browser/device. Records are not shared with other users, and there is no login, MySQL connection, or server-side security. Use test/demo records only.</div><h2 class="h6 fw-bold mt-4">Field Office Coverage</h2><p class="text-secondary mb-1"><strong>CPFO</strong> — Cebu Provincial Field Office</p><p class="text-secondary mb-1"><strong>TCFO</strong> — Tri-City (Cebu City, Mandaue City, Lapu-Lapu City)</p><p class="text-secondary"><strong>BFO</strong> — Bohol Field Office</p><h2 class="h6 fw-bold mt-4">Geocoding notes</h2><p class="text-secondary">Place search and map-click reverse lookups require internet access and may depend on OpenStreetMap/Nominatim data accuracy. Searches occur only when requested, not for each keystroke. This demo verifies administrative location text returned by the geocoder; a production deployment should add official polygon-boundary GIS validation and a server-side geocoding proxy/cache.</p></div></div>
+      <div class="col-lg-5"><div class="card-ui p-4 mb-3"><h2 class="h6 fw-bold">Local Data Controls</h2><p class="small-muted">Manage this browser's prototype records. Create a JSON backup first if you wish to keep your entries.</p><button class="soft-btn w-100 mb-2" id="resetDemo"><i class="bi bi-arrow-repeat me-2"></i>Restore Demo Activities</button><button class="btn btn-outline-danger w-100" id="clearAll"><i class="bi bi-trash3 me-2"></i>Delete All Local Activities</button></div><div class="card-ui p-4"><h2 class="h6 fw-bold">Next Phase: PHP / MySQL</h2><p class="small-muted mb-0">For multi-user agency operations, connect the UI to PHP PDO endpoints, MySQL tables, authentication, user roles, audit logging, approved network access, HTTPS, and regular backups.</p></div></div></div>
+    </section>
+  </div>
+</main>
+<nav class="mobile-nav" aria-label="Mobile navigation"><button class="active" data-view="dashboard"><i class="bi bi-grid"></i>Overview</button><button data-view="records"><i class="bi bi-list-ul"></i>Records</button><button data-view="entry"><i class="bi bi-plus-circle"></i>Add New</button><button data-view="about"><i class="bi bi-info-circle"></i>About</button></nav>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastArea"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(() => {
+  'use strict';
+  const STORE = 'dole_ro7_html_monitor_v1';
+  const GEO_CACHE = 'dole_ro7_geocache_v1';
+  const OFFICES = [
+    {id:'CPFO',name:'Cebu Provincial Field Office',province:'Cebu'},
+    {id:'TCFO',name:'Tri-City Field Office',province:'Cebu'},
+    {id:'BFO',name:'Bohol Field Office',province:'Bohol'}
+  ];
+  const PROGRAMS = [
+    {code:'TUPAD',name:'TUPAD',color:'#1976D2'},
+    {code:'DILP',name:'DILP / Livelihood',color:'#15A67E'},
+    {code:'SPES',name:'SPES',color:'#EF9B28'},
+    {code:'CLP',name:'Child Labor Program',color:'#9556C6'},
+    {code:'JOBFAIR',name:'Job Fair',color:'#E65C6A'}
+  ];
+  const CENTER = [10.34,124.02], BOUNDS = L.latLngBounds([[9.18,123.05],[11.84,124.97]]);
+  const qs = s => document.querySelector(s);
+  const qsa = s => Array.from(document.querySelectorAll(s));
+  const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const officeById = id => OFFICES.find(o => o.id === id);
+  const programByCode = code => PROGRAMS.find(p => p.code === code);
+  const fmt = n => Number(n || 0).toLocaleString('en-PH');
+  const dateToday = () => { const d = new Date(); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); };
+  const formatDate = s => { if(!/^\d{4}-\d{2}-\d{2}$/.test(s||'')) return '—'; const [y,m,d] = s.split('-');return `${m}/${d}/${y}`; };
+  const seed = [
+    ['CPFO','TUPAD','TUPAD Community Employment Assistance','Poblacion','Danao City','Cebu',10.52,124.027,'Completed',195,'2026-08-12','Sample activity'],
+    ['TCFO','JOBFAIR','Cebu City Local Job Fair','Lahug','Cebu City','Cebu',10.339,123.909,'Completed',420,'2026-09-08','Sample activity'],
+    ['BFO','DILP','Livelihood Starter Kits Distribution','Cogon','Tagbilaran City','Bohol',9.651,123.858,'Ongoing',88,'2026-10-16','Sample activity'],
+    ['CPFO','SPES','Special Program for Employment of Students','Poblacion','Carcar City','Cebu',10.107,123.639,'Ongoing',120,'2026-10-05','Sample activity'],
+    ['TCFO','TUPAD','TUPAD Beneficiary Orientation','Guadalupe','Cebu City','Cebu',10.303,123.89,'Planned',240,'2026-11-03','Sample activity'],
+    ['BFO','CLP','Child Labor Prevention Awareness','Poblacion','Ubay','Bohol',10.056,124.472,'Completed',65,'2026-07-19','Sample activity'],
+    ['TCFO','SPES','SPES Employment Orientation','Centro','Mandaue City','Cebu',10.331,123.936,'Completed',75,'2026-08-26','Sample activity'],
+    ['BFO','JOBFAIR','Bohol Employment Caravan','Poblacion','Panglao','Bohol',9.579,123.746,'Planned',250,'2026-11-20','Sample activity'],
+    ['CPFO','DILP','Livelihood Assistance Monitoring','Poblacion','Toledo City','Cebu',10.377,123.638,'Ongoing',110,'2026-10-02','Sample activity'],
+    ['TCFO','CLP','Child Labor Awareness Orientation','Pusok','Lapu-Lapu City','Cebu',10.323,123.98,'Completed',90,'2026-09-23','Sample activity']
+  ].map((r,i)=>({id:`sample-${i+1}`,field_office_id:r[0],program_code:r[1],activity_title:r[2],barangay:r[3],municipality_city:r[4],province:r[5],latitude:r[6],longitude:r[7],status:r[8],beneficiaries_count:r[9],date_conducted:r[10],remarks:r[11],sample:true}));
+  const loadData = () => { try { const raw=localStorage.getItem(STORE); if(raw!==null){ const value=JSON.parse(raw);return Array.isArray(value)?value:[]; } } catch(e){ console.warn('Unable to load saved records', e); } return structuredClone(seed); };
+  let activities = loadData(), dashboardMap, entryMap, dashboardLayer, entryPin, activeView='dashboard', editId=null, selectedLocation=null, lastGeocodeRequest=0, geoBusy=false, geocodeCache={};
+  try {geocodeCache=JSON.parse(localStorage.getItem(GEO_CACHE)||'{}')||{};}catch(e){geocodeCache={};}
+  const saveData = () => { try { localStorage.setItem(STORE, JSON.stringify(activities)); return true; } catch(e){ notify('Browser storage is full or unavailable. Use JSON backup before continuing.','danger'); return false; } };
+  const notify = (message,kind='success') => { const el=document.createElement('div');el.className=`toast align-items-center text-bg-${kind} border-0`;el.setAttribute('role','alert');el.setAttribute('aria-live','assertive');el.innerHTML=`<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`; el.querySelector('.toast-body').textContent=message;qs('#toastArea').appendChild(el);const toast=new bootstrap.Toast(el,{delay:4300});el.addEventListener('hidden.bs.toast',()=>el.remove());toast.show(); };
+  function initSelects(){
+    const opts=OFFICES.map(o=>`<option value="${o.id}">${escapeHtml(o.name)} (${o.id})</option>`).join('');
+    for (const id of ['filterOffice','recordOffice']) qs('#'+id).insertAdjacentHTML('beforeend',opts);
+    qs('#activityOffice').insertAdjacentHTML('beforeend',opts);
+    const popts=PROGRAMS.map(p=>`<option value="${p.code}">${escapeHtml(p.name)}</option>`).join('');
+    qs('#filterProgram').insertAdjacentHTML('beforeend',popts);qs('#activityProgram').insertAdjacentHTML('beforeend',popts);
+  }
+  function mapBase(container, zoom){
+    const map=L.map(container,{zoomControl:true, minZoom:7, maxZoom:18}).setView(CENTER,zoom);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',maxZoom:19}).addTo(map);
+    return map;
+  }
+  function mapIcon(color){return L.divIcon({className:'',html:`<div class="dot-marker" style="background:${color}"></div>`,iconSize:[19,19],iconAnchor:[9,9],popupAnchor:[0,-8]});}
+  function popupHtml(a){ const p=programByCode(a.program_code)||{name:'Unknown',color:'#6d8495'};return `<div class="popup-program" style="color:${p.color}"><span class="keydot" style="background:${p.color}"></span>${escapeHtml(p.name)}</div><div class="popup-title">${escapeHtml(a.activity_title)}</div><div class="popup-line"><span>Field Office</span><strong>${escapeHtml(officeById(a.field_office_id)?.name||a.field_office_id)}</strong></div><div class="popup-line"><span>Location</span><strong>${escapeHtml([a.barangay,a.municipality_city,a.province].filter(Boolean).join(', '))}</strong></div><div class="popup-line"><span>Status</span><strong>${escapeHtml(a.status)}</strong></div><div class="popup-line"><span>Beneficiaries</span><strong>${fmt(a.beneficiaries_count)}</strong></div>`; }
+  function initMaps(){dashboardMap=mapBase('dashboardMap',9); dashboardMap.fitBounds(BOUNDS); dashboardLayer=L.layerGroup().addTo(dashboardMap);entryMap=mapBase('entryMap',9); entryMap.on('click',async event=>{if(!qs('#activityOffice').value){notify('Select a field office before placing a pin.','warning');return;} await reverseGeocode(event.latlng.lat,event.latlng.lng);});}
+  function shownFiltered(){return activities.filter(a=>(!qs('#filterOffice').value||a.field_office_id===qs('#filterOffice').value)&&(!qs('#filterProgram').value||a.program_code===qs('#filterProgram').value));}
+  function updateDashboard(){
+    const records=shownFiltered();qs('#metricTotal').textContent=fmt(records.length);qs('#metricBeneficiaries').textContent=fmt(records.reduce((n,a)=>n+Number(a.beneficiaries_count||0),0));qs('#metricCompleted').textContent=fmt(records.filter(a=>a.status==='Completed').length);qs('#metricOngoing').textContent=fmt(records.filter(a=>a.status==='Ongoing').length);
+    dashboardLayer.clearLayers();
+    for(const a of records){const p=programByCode(a.program_code);if(!p||!Number.isFinite(+a.latitude)||!Number.isFinite(+a.longitude))continue;const marker=L.marker([+a.latitude,+a.longitude],{icon:mapIcon(p.color)}).bindPopup(popupHtml(a),{maxWidth:310});marker.activityId=a.id;dashboardLayer.addLayer(marker);}
+    const largest=Math.max(1,...PROGRAMS.map(p=>records.filter(a=>a.program_code===p.code).length));
+    qs('#programBreakdown').innerHTML=PROGRAMS.map(p=>{const n=records.filter(a=>a.program_code===p.code).length;return `<div class="program-row"><div class="w-100"><div class="d-flex justify-content-between align-items-center"><span class="program-name"><span class="keydot d-inline-block me-2" style="background:${p.color}"></span>${escapeHtml(p.name)}</span><span class="small-muted fw-bold">${n}</span></div><div class="bar-track"><div class="bar-fill" style="width:${n/largest*100}%;background:${p.color}"></div></div></div></div>`}).join('');
+    const sorted=[...records].sort((a,b)=>b.date_conducted.localeCompare(a.date_conducted));qs('#recentTable').innerHTML=sorted.slice(0,6).map(a=>tableRow(a,false)).join('') || `<tr><td colspan="6" class="empty"><i class="bi bi-geo"></i>No monitoring activities match these filters.</td></tr>`;
+  }
+  function tableRow(a, actions){ const p=programByCode(a.program_code)||{name:a.program_code,color:'#999'};return `<tr><td><div class="record-title">${escapeHtml(a.activity_title)}</div><div class="record-place"><i class="bi bi-geo-alt me-1"></i>${escapeHtml([a.barangay,a.municipality_city,a.province].filter(Boolean).join(', '))}</div></td><td>${escapeHtml(a.field_office_id)}</td><td><span class="tag program-tag"><span class="keydot d-inline-block me-1" style="background:${p.color}"></span>${escapeHtml(p.name)}</span></td><td>${formatDate(a.date_conducted)}</td><td><span class="tag st-${escapeHtml(a.status)}">${escapeHtml(a.status)}</span></td><td class="text-end fw-bold">${fmt(a.beneficiaries_count)}</td>${actions?`<td class="text-end"><div class="btn-group btn-group-sm" role="group" aria-label="Record actions"><button class="btn btn-outline-secondary" data-action="locate" data-id="${escapeHtml(a.id)}" title="View on map"><i class="bi bi-pin-map"></i></button><button class="btn btn-outline-primary" data-action="edit" data-id="${escapeHtml(a.id)}" title="Edit activity"><i class="bi bi-pencil"></i></button><button class="btn btn-outline-danger" data-action="delete" data-id="${escapeHtml(a.id)}" title="Delete activity"><i class="bi bi-trash"></i></button></div></td>`:''}</tr>`; }
+  function updateRecords(){const search=qs('#recordSearch').value.trim().toLowerCase();const office=qs('#recordOffice').value,status=qs('#recordStatus').value;const rows=activities.filter(a=>(!office||a.field_office_id===office)&&(!status||a.status===status)&&(!search||[a.activity_title,a.barangay,a.municipality_city,a.province,a.field_office_id,programByCode(a.program_code)?.name,a.remarks].join(' ').toLowerCase().includes(search))).sort((a,b)=>b.date_conducted.localeCompare(a.date_conducted));qs('#recordsCount').textContent=String(rows.length);qs('#recordsTable').innerHTML=rows.map(a=>tableRow(a,true)).join('')||'<tr><td colspan="7" class="empty"><i class="bi bi-inbox"></i>No activity records found.</td></tr>';}
+  const refresh=()=>{updateDashboard();updateRecords();};
+  function showView(view){if(!['dashboard','records','entry','about'].includes(view))return;activeView=view;qsa('.view').forEach(el=>el.classList.toggle('active',el.id===`view-${view}`));qsa('[data-view]').forEach(el=>el.classList.toggle('active',el.dataset.view===view));window.scrollTo({top:0,behavior:'instant'});setTimeout(()=>{if(view==='dashboard'){dashboardMap.invalidateSize();}if(view==='entry'){entryMap.invalidateSize();if(selectedLocation)entryMap.setView([selectedLocation.lat,selectedLocation.lon],14);}},100);}
+  function clearSelected(){selectedLocation=null;if(entryPin){entryMap.removeLayer(entryPin);entryPin=null;}qs('#activityCoordinates').value='';qs('#activityCity').value='';qs('#locationFlag').textContent='Awaiting location';qs('#locationFlag').className='tag st-Planned';qs('#locationSummary').innerHTML='<i class="bi bi-cursor me-1"></i> Search for a barangay or click the map to verify a location. The pin and coordinates will update automatically.';qs('#searchResults').innerHTML='';}
+  function resetEntry(){editId=null;qs('#activityForm').reset();qs('#entryTitle').textContent='Register New Activity';qs('#saveBtnText').textContent='Save Monitoring Activity';qs('#activityDate').value=dateToday();qs('#activityBeneficiaries').value=0;qs('#activityProvince').value='';qs('#locationSearch').value='';clearSelected();entryMap.setView(CENTER,9);}
+  function openEntry(id=null){resetEntry();if(id){const a=activities.find(x=>x.id===id);if(!a)return;editId=id;qs('#entryTitle').textContent='Edit Monitoring Activity';qs('#saveBtnText').textContent='Update Monitoring Activity';qs('#activityTitle').value=a.activity_title;qs('#activityOffice').value=a.field_office_id;qs('#activityProgram').value=a.program_code;qs('#activityDate').value=a.date_conducted;qs('#activityStatus').value=a.status;qs('#activityBeneficiaries').value=a.beneficiaries_count;qs('#activityBarangay').value=a.barangay||'';qs('#activityRemarks').value=a.remarks||'';qs('#activityProvince').value=a.province;setVerifiedLocation({lat:a.latitude,lon:a.longitude,province:a.province,city:a.municipality_city,barangay:a.barangay,display_name:[a.barangay,a.municipality_city,a.province].filter(Boolean).join(', ')},false);}showView('entry');}
+  function normalize(s){return String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g,'').replace(/city$/, '');}
+  const cityTri = city => ['cebu','mandaue','lapulapu','opon'].includes(normalize(city));
+  const matchTri = city => ['cebu','mandaue','lapulapu','opon'].includes(normalize(city));
+  function determineProvince(a,display){
+    const fields=[a?.province,a?.county,a?.state_district].filter(Boolean).map(s=>String(s).toLowerCase());
+    if(fields.some(s=>/\bbohol\b/.test(s)))return 'Bohol';if(fields.some(s=>/\bcebu\b/.test(s)))return 'Cebu';
+    const segments=String(display||'').split(',').map(s=>s.trim().toLowerCase());
+    if(segments.some(s=>/^bohol(?: province)?$/.test(s)))return 'Bohol';if(segments.some(s=>/^cebu(?: province)?$/.test(s)))return 'Cebu';
+    const city=String(a?.city||a?.municipality||a?.town||'');if(/^(cebu|mandaue|lapu[- ]lapu)(?: city)?$/i.test(city))return 'Cebu';
+    return null;
+  }
+  function cityFromAddress(a,display){const city=a?.city||a?.municipality||a?.town||a?.village||a?.city_district||a?.suburb||'';if(city)return String(city);const segments=String(display||'').split(',').map(s=>s.trim());return segments[1]||'';}
+  function barangayFromAddress(a){const val=a?.quarter||a?.suburb||a?.neighbourhood||a?.village||a?.hamlet||'';return String(val).replace(/^barangay\s+/i,'');}
+  function jurisdictionCheck(province,city,officeId){const office=officeById(officeId);if(!office)return 'Please select a field office first.';if(!province)return 'Geocoder did not confirm Cebu or Bohol province. Search a more specific place.';if(province!==office.province)return `This place is in ${province}, but ${officeId} covers ${office.province}.`;
+    if(officeId==='TCFO'&&!matchTri(city))return 'TCFO only covers Cebu City, Mandaue City, and Lapu-Lapu City. Search a more precise city location.';
+    if(officeId==='CPFO'&&matchTri(city))return 'Cebu City, Mandaue City, and Lapu-Lapu City belong under TCFO, not CPFO.';
+    if(officeId==='CPFO'&&!city)return 'Select a location with a verified Cebu municipality or city.';
+    return null;
+  }
+  function setVerifiedLocation(location,fillBarangay=true){selectedLocation=location;const lat=Number(location.lat),lon=Number(location.lon);if(entryPin)entryMap.removeLayer(entryPin);entryPin=L.marker([lat,lon],{draggable:false,icon:mapIcon('#1377be')}).addTo(entryMap).bindPopup(escapeHtml(location.display_name||'Verified location')).openPopup();entryMap.flyTo([lat,lon],14,{duration:.6});qs('#activityCoordinates').value=`${lat.toFixed(6)}, ${lon.toFixed(6)}`;qs('#activityCity').value=location.city;qs('#activityProvince').value=location.province;if(fillBarangay&&location.barangay)qs('#activityBarangay').value=location.barangay;qs('#locationFlag').textContent='Location verified';qs('#locationFlag').className='tag st-Completed';qs('#locationSummary').innerHTML=`<i class="bi bi-check-circle-fill me-1" style="color:#15976c"></i><strong>Confirmed:</strong> ${escapeHtml(location.display_name||[location.city,location.province].join(', '))}<br><span class="small-muted">Latitude ${lat.toFixed(6)} · Longitude ${lon.toFixed(6)}</span>`;}
+  function makeGeocoded(result){const address=result.address||{},display=result.display_name||'';return {lat:Number(result.lat),lon:Number(result.lon),province:determineProvince(address,display),city:cityFromAddress(address,display),barangay:barangayFromAddress(address),display_name:display};}
+  async function rateLimitedFetch(url){if(geoBusy)throw Error('A location request is already in progress.');geoBusy=true;const delay=Math.max(0,1150-(Date.now()-lastGeocodeRequest));if(delay)await new Promise(r=>setTimeout(r,delay));lastGeocodeRequest=Date.now();try{const res=await fetch(url,{headers:{Accept:'application/json'}});if(!res.ok)throw Error(`Geocoding service returned HTTP ${res.status}. Try again later.`);return await res.json();}finally{geoBusy=false;}}
+  function setSearchLoading(loading){qs('#searchLocationBtn').disabled=loading;qs('#searchLocationBtn').innerHTML=loading?'<span class="spinner-border spinner-border-sm me-1"></span>Searching...':'<i class="bi bi-search me-1"></i>Search';}
+  async function searchLocation(){const term=qs('#locationSearch').value.trim(),officeId=qs('#activityOffice').value;if(!officeId){notify('Select the field office before searching.','warning');return;}if(term.length<3){notify('Enter at least three characters in the location search.','warning');return;}setSearchLoading(true);qs('#searchResults').innerHTML='<div class="small-muted mt-2">Looking for Cebu/Bohol locations...</div>';try{
+    const key=term.toLowerCase();let results;const cached=geocodeCache[key];if(cached&&Date.now()-cached.time<7*24*60*60*1000){results=cached.results;}else{const url=new URL('https://nominatim.openstreetmap.org/search');url.searchParams.set('q',term);url.searchParams.set('format','jsonv2');url.searchParams.set('addressdetails','1');url.searchParams.set('countrycodes','ph');url.searchParams.set('limit','10');url.searchParams.set('viewbox','123.05,11.84,124.97,9.18');url.searchParams.set('bounded','1');results=await rateLimitedFetch(url);geocodeCache[key]={time:Date.now(),results};try{localStorage.setItem(GEO_CACHE,JSON.stringify(geocodeCache));}catch(e){/* optional cache */}}
+    const valid=results.map(makeGeocoded).filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lon)&&!jurisdictionCheck(r.province,r.city,officeId));
+    qs('#searchResults').replaceChildren();if(!valid.length){qs('#searchResults').innerHTML='<div class="small-muted mt-2 p-2">No verified matching locations found for this field office. Try including the full city and province (for example, “Guadalupe, Cebu City, Cebu”).</div>';return;}
+    valid.slice(0,7).forEach((r,i)=>{const button=document.createElement('button');button.type='button';button.className='search-result';button.innerHTML=`<i class="bi bi-geo-alt-fill me-2 text-primary"></i>${escapeHtml(r.display_name)}<div class="small-muted mt-1">${escapeHtml(r.city)} · ${escapeHtml(r.province)}</div>`;button.addEventListener('click',()=>{setVerifiedLocation(r);qs('#searchResults').replaceChildren();notify('Location verified and pinned successfully.');});qs('#searchResults').appendChild(button);});
+  }catch(e){qs('#searchResults').innerHTML='<div class="small text-danger mt-2">Location search unavailable. An internet connection and a hosted HTTP page may be required.</div>';notify(e.message||'Could not search this location.','danger');}finally{setSearchLoading(false);}}
+  async function reverseGeocode(lat,lon){const officeId=qs('#activityOffice').value;qs('#locationSummary').textContent='Verifying the selected map position...';try{const url=new URL('https://nominatim.openstreetmap.org/reverse');url.searchParams.set('lat',lat.toFixed(6));url.searchParams.set('lon',lon.toFixed(6));url.searchParams.set('format','jsonv2');url.searchParams.set('addressdetails','1');url.searchParams.set('zoom','14');const result=await rateLimitedFetch(url);if(result.error)throw Error(result.error);const location=makeGeocoded({...result,lat,lon});const issue=jurisdictionCheck(location.province,location.city,officeId);if(issue){notify(issue,'warning');qs('#locationSummary').textContent='This map point was not accepted. Select a location inside the selected office jurisdiction.';return;}setVerifiedLocation(location);notify('Map location verified and coordinates updated.');}catch(e){qs('#locationSummary').textContent='Could not verify the map point. Use the location search or try again.';notify(e.message||'Reverse geocoding failed.','danger');}}
+  function saveForm(e){e.preventDefault();const f=qs('#activityForm');if(!f.reportValidity())return;const title=qs('#activityTitle').value.trim();const office=qs('#activityOffice').value,program=qs('#activityProgram').value;const beneficiaries=Number(qs('#activityBeneficiaries').value);const city=qs('#activityCity').value.trim();if(!title||!office||!program||!qs('#activityDate').value||!qs('#activityStatus').value){notify('Complete all required fields.','warning');return;}if(!Number.isSafeInteger(beneficiaries)||beneficiaries<0||beneficiaries>9999999){notify('Enter a valid, nonnegative number of beneficiaries.','warning');return;}if(!selectedLocation||!city){notify('Search or verify a location on the map before saving.','warning');return;}const issue=jurisdictionCheck(selectedLocation.province,selectedLocation.city,office);if(issue){notify(issue,'warning');return;}
+    const a={id:editId||('act-'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2))),field_office_id:office,program_code:program,activity_title:title,barangay:qs('#activityBarangay').value.trim(),municipality_city:city,province:selectedLocation.province,latitude:Number(selectedLocation.lat),longitude:Number(selectedLocation.lon),status:qs('#activityStatus').value,beneficiaries_count:beneficiaries,date_conducted:qs('#activityDate').value,remarks:qs('#activityRemarks').value.trim(),sample:false};
+    const previous=[...activities];if(editId)activities=activities.map(item=>item.id===editId?a:item);else activities.push(a);if(!saveData()){activities=previous;return;}refresh();notify(editId?'Activity updated successfully.':'Activity saved in this browser successfully.');resetEntry();showView('records');}
+  function deleteActivity(id){const a=activities.find(item=>item.id===id);if(!a)return;if(!confirm(`Delete “${a.activity_title}”? This cannot be undone unless you have a JSON backup.`))return;activities=activities.filter(item=>item.id!==id);saveData();refresh();notify('Activity deleted.');}
+  function locateActivity(id){const a=activities.find(item=>item.id===id);if(!a)return;qs('#filterOffice').value='';qs('#filterProgram').value='';updateDashboard();showView('dashboard');setTimeout(()=>{dashboardMap.flyTo([a.latitude,a.longitude],13);dashboardLayer.eachLayer(marker=>{if(marker.activityId===id)marker.openPopup();});},180);}
+  function downloadFile(filename,content,mime){const url=URL.createObjectURL(new Blob([content],{type:mime}));const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  function exportCsv(){const headings=['ID','Field Office','Program','Activity Title','Barangay','Municipality/City','Province','Latitude','Longitude','Status','Beneficiaries','Date Conducted','Remarks'];const rows=activities.map(a=>[a.id,a.field_office_id,a.program_code,a.activity_title,a.barangay,a.municipality_city,a.province,a.latitude,a.longitude,a.status,a.beneficiaries_count,a.date_conducted,a.remarks]);const esc=value=>{let v=String(value??'');if(/^[\s]*[=+@-]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"';};downloadFile(`DOLE_RO7_Activities_${dateToday()}.csv`,'\uFEFF'+[headings,...rows].map(row=>row.map(esc).join(',')).join('\r\n'),'text/csv;charset=utf-8');notify('CSV file exported.');}
+  function exportJson(){downloadFile(`DOLE_RO7_Backup_${dateToday()}.json`,JSON.stringify({format:'DOLE_RO7_HTML_PROTOTYPE_V1',exported_at:new Date().toISOString(),activities},null,2),'application/json');notify('JSON backup downloaded.');}
+  function isValidImported(a){return a&&typeof a.id==='string'&&typeof a.activity_title==='string'&&officeById(a.field_office_id)&&programByCode(a.program_code)&&['Planned','Ongoing','Completed'].includes(a.status)&&typeof a.municipality_city==='string'&&jurisdictionCheck(a.province,a.municipality_city,a.field_office_id)===null&&Number.isFinite(Number(a.latitude))&&Number.isFinite(Number(a.longitude))&&Number(a.latitude)>=9.18&&Number(a.latitude)<=11.84&&Number(a.longitude)>=123.05&&Number(a.longitude)<=124.97&&Number.isSafeInteger(Number(a.beneficiaries_count))&&Number(a.beneficiaries_count)>=0&&/^\d{4}-\d{2}-\d{2}$/.test(a.date_conducted||'');}
+  async function importJson(file){if(!file)return;try{if(file.size>3_000_000)throw Error('Backup exceeds the 3 MB import limit.');const payload=JSON.parse(await file.text());if(payload.format!=='DOLE_RO7_HTML_PROTOTYPE_V1'||!Array.isArray(payload.activities))throw Error('Invalid DOLE RO7 prototype backup format.');if(payload.activities.length>5000||!payload.activities.every(isValidImported))throw Error('Backup contains invalid records or outside-jurisdiction entries.');if(!confirm(`Replace all current browser records with ${payload.activities.length} imported records?`))return;activities=payload.activities.map(a=>({...a,activity_title:String(a.activity_title).slice(0,180),remarks:String(a.remarks||'').slice(0,2000)}));saveData();refresh();notify('JSON backup restored successfully.');}catch(e){notify(e.message||'Could not import JSON backup.','danger');}finally{qs('#importJson').value='';}}
+  function events(){
+    qsa('[data-view]').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.view==='entry')openEntry();else showView(el.dataset.view);}));qsa('[data-go]').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.go==='entry')openEntry();else showView(el.dataset.go);}));
+    qs('#filterOffice').addEventListener('change',updateDashboard);qs('#filterProgram').addEventListener('change',updateDashboard);qs('#resetFilters').addEventListener('click',()=>{qs('#filterOffice').value='';qs('#filterProgram').value='';updateDashboard();dashboardMap.fitBounds(BOUNDS);});
+    qs('#recordSearch').addEventListener('input',updateRecords);qs('#recordOffice').addEventListener('change',updateRecords);qs('#recordStatus').addEventListener('change',updateRecords);qs('#clearRecordFilters').addEventListener('click',()=>{qs('#recordSearch').value='';qs('#recordOffice').value='';qs('#recordStatus').value='';updateRecords();});
+    qs('#recordsTable').addEventListener('click',e=>{const btn=e.target.closest('[data-action]');if(!btn)return;const id=btn.dataset.id;if(btn.dataset.action==='edit')openEntry(id);else if(btn.dataset.action==='delete')deleteActivity(id);else if(btn.dataset.action==='locate')locateActivity(id);});
+    qs('#activityOffice').addEventListener('change',()=>{const office=officeById(qs('#activityOffice').value);qs('#activityProvince').value=office?.province||'';qs('#activityBarangay').value='';clearSelected();if(office?.id==='BFO')entryMap.setView([9.87,124.07],10);else if(office?.id==='TCFO')entryMap.setView([10.321,123.929],11);else entryMap.setView([10.48,123.75],9);});
+    qs('#searchLocationBtn').addEventListener('click',searchLocation);qs('#locationSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchLocation();}});qs('#activityForm').addEventListener('submit',saveForm);qs('#clearEntry').addEventListener('click',resetEntry);
+    qs('#exportCsv').addEventListener('click',exportCsv);qs('#exportJson').addEventListener('click',exportJson);qs('#importJson').addEventListener('change',e=>importJson(e.target.files?.[0]));
+    qs('#resetDemo').addEventListener('click',()=>{if(!confirm('Replace all current browser records with the initial sample activities? Export a backup first if needed.'))return;activities=structuredClone(seed);saveData();refresh();notify('Demo activities restored.');showView('dashboard');});
+    qs('#clearAll').addEventListener('click',()=>{if(!confirm('Permanently clear all locally saved activity records in this browser?'))return;activities=[];saveData();refresh();notify('All local activity records cleared.');showView('dashboard');});
+  }
+  initSelects();initMaps();events();qs('#activityDate').value=dateToday();refresh();
+})();
+</script>
+</body>
+</html>
